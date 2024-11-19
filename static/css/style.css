@@ -1,0 +1,73 @@
+body{
+    padding: 40px 0px 0px 0px;
+    margin: 0px;
+    box-sizing: border-box;
+    
+}
+.col{
+    padding-right: 0px !important;
+    padding-left: 0px !important;
+}
+p{
+    display: inline-block ;
+    margin-bottom: 0px;
+}
+.logo1 {
+    width: 103px;
+    height: 43px;
+}
+
+.logo2 {
+    width: 182px;
+    height: 44px;
+}
+
+.hos_info p{
+    display: block;
+    text-align: center;
+    font-size: 10.86px;
+}
+.title{
+    font-size: 14.26px !important;
+    letter-spacing: 1.3px;
+    position: relative;
+    top: 4px;
+    left: -30px;
+}
+.tile_med{
+    position: relative;
+    top: 3px;
+    left: -30px;
+}
+.hos_name{
+    position: relative;
+    left: -30px;
+}
+.code{
+    position: relative;
+    left: -11px;
+}
+.code p{
+    font-size: 10.86px; 
+    text-align: center; 
+    padding-right: 38px;
+}
+.per-img{
+    width: 75px;
+    height: 75px;
+}
+.per-info p{
+    font-size: 10.5px;
+}
+.per-info .col{
+    display: flex ;
+}
+.static_pic{
+    width: 700px;
+    height: auto;
+}
+@media print{
+    #print{
+        display: none;
+    }
+}
