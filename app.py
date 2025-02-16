@@ -28,7 +28,33 @@ def index():
             input_field.send_keys(customer_code)
             input_field.send_keys(Keys.ENTER)
 
-            time.sleep(5) 
+            time.sleep(2)  
+
+            modal_present = False
+            try:
+                driver.find_element(By.CLASS_NAME, "medical-status-modal-acceptance")
+                modal_present = True
+            except:
+                modal_present = False
+
+            attempts = 0
+            while not modal_present and attempts < 100:  
+                attempts += 1
+                print(f"Modal not found, retrying... Attempt {attempts}")
+                input_field = driver.find_element(By.ID, "id_gcc_slip_no")
+                input_field.clear()  
+                input_field.send_keys(customer_code)
+                input_field.send_keys(Keys.ENTER)
+                time.sleep(2)
+
+                try:
+                    driver.find_element(By.CLASS_NAME, "medical-status-modal-acceptance")
+                    modal_present = True
+                except:
+                    modal_present = False
+
+            if not modal_present:
+                return "Error: Modal not found after multiple attempts."
 
             extracted_data['name'] = driver.find_element(By.ID, "name").get_attribute("value")  
             extracted_data['marital_status'] = driver.find_element(By.ID, "marital_status").get_attribute("value")
@@ -80,7 +106,6 @@ def index():
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Fit Card</title>
-                <!-- Link to the CSS file in the static folder -->
                 <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
                 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
             </head>
@@ -101,17 +126,29 @@ def index():
                         </div>
                     </div>
                     <div class="code">
-                        <p>G.H.C. Code No. <br> 05/04/03</p>
-                        <p>GCC Slip No. <br> {{ customer_code }}</p>
-                        <p>Date examined <br> {{ extracted_data['medical_examination_date'] }}</p>
-                        <p>Report expiry date<br> {{ extracted_data['report_expiry_date'] }}</p>
+                        <p>G.H.C. Code No. <br> 
+                            <strong>
+                                {% if extracted_data['medical_center'] == 'AL MAN MEDICAL CENTER' %}
+                                    04/07/04
+                                {% elif extracted_data['medical_center'] == 'AL ALI DIAGNOSTIC CENTER' %}
+                                    05/06/05
+                                {% elif extracted_data['medical_center'] == 'SATATA MEDICAL CHECKUP CENTER' %}
+                                    05/06/02
+                                {% else %}
+                                    05/04/03
+                                {% endif %}
+                            </strong>
+                        </p>
+
+                        <p>GCC Slip No. <br> <Strong> {{ customer_code }}</Strong></p>
+                        <p>Date examined <br> <Strong> {{ extracted_data['medical_examination_date'] }}</Strong></p>
+                        <p>Report expiry date<br> <Strong> {{ extracted_data['report_expiry_date'] }} </Strong></p>
                     </div>
                     <div style="text-align: center;">
                         <p style="letter-spacing: 1.1px; font-weight: 600; font-size: 12.6524px;">CANDIDATE INFORMATION</p>
                     </div>
                     <div class="row per-info" style="position: relative; top: 15px;">
                         <div class="col">
-                            <!-- Dynamically set the profile image URL -->
                             <img style="margin-right: 58px;" class="per-img" src="{{ extracted_data['profile_picture_url'] }}" alt="Profile Picture">
                             <div class="row">
                                 <p style="line-height: 1.2; padding: 0; display: inline-block;">Name <br> <strong>{{ extracted_data['name'] }}</strong></p>
@@ -119,7 +156,7 @@ def index():
                                     <p style="line-height: 1.2;">Marital status<br><strong>{{ extracted_data['marital_status'] }}</strong> <br> Height <br> <strong>{{ extracted_data['height'] }}</strong></p>
                                 </div>
                                 <div class="col">
-                                    <p style="line-height: 1.2; position: relative; left: 12px;">Passport No. <br> <strong>{{ extracted_data['passport'] }}</strong> <br> Weight <br> <strong>{{ extracted_data['weight'] }}</strong></p>
+                                    <p style="line-height: 1.2; position: relative; left: 12px;">Passport No. <br> <strong>{{ extracted_data['passport'] }}</strong> <br> Weight <br> <strong>{{ extracted_data['weight'] }}kg</strong></p>
                                 </div>
                                 <div class="col">
                                     <p style="line-height: 1.2; position: relative; left: 22px;">Age <br> <strong> {{ extracted_data['age'] }}</strong> <br> BMI <br> <strong>{{ extracted_data['BMI'] }}</strong></p>
@@ -151,9 +188,14 @@ def index():
         <img style="position: relative; top: -10px;" class="static_pic"
                  src="{% if extracted_data['medical_center'] == 'Medi Health Medical Center' %}
                      {{ url_for('static', filename='img/medihelth.png') }}
-                     
-                     {% else %}
+                      {% elif extracted_data['medical_center'] == 'Tabuk Medical Center' %}
                      {{ url_for('static', filename='img/tabuk.png') }}
+                      {% elif extracted_data['medical_center'] == 'AL MAN MEDICAL CENTER' %}
+                     {{ url_for('static', filename='img/alman.png') }}
+                      {% elif extracted_data['medical_center'] == 'AL ALI DIAGNOSTIC CENTER	' %}
+                     {{ url_for('static', filename='img/alali.png') }}
+                      {% else %}
+                     {{ url_for('static', filename='img/sotota.png') }}
                      {% endif %}" alt="">
 
                 </div>
