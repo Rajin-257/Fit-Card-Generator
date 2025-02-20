@@ -66,8 +66,8 @@ p{
     width: 700px;
     height: auto;
 }
-@media print{
-    #print{
+@media 2312{
+    #2312{
         display: none;
     }
 }

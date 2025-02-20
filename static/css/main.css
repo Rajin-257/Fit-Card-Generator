@@ -6,6 +6,13 @@
 .ls0{letter-spacing:0.000000px;}
 .sc_{text-shadow:none;}
 .sc0{text-shadow:-0.015em 0 transparent,0 0.015em transparent,0.015em 0 transparent,0 -0.015em  transparent;}
+.testi{
+    display: inline-block;
+    width: 926px;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 40px;
+}
 @media screen and (-webkit-min-device-pixel-ratio:0){
 .sc_{-webkit-text-stroke:0px transparent;}
 .sc0{-webkit-text-stroke:0.015em transparent;text-shadow:none;}
@@ -165,7 +172,7 @@
 .x2e{left:72.014819px;}
 .x2a{left:82.639957px;}
 .x14{left:85.001098px;}
-.x6{left:96.511664px;}
+.x6{left:90px;}
 .x5{left:109.497943px;}
 .x7{left:127.796790px;}
 .xf{left:164.099343px;}
@@ -198,7 +205,7 @@
 .xe{left:457.471189px;}
 .x1f{left:458.651760px;}
 .x20{left:491.707743px;}
-@media print{
+@media 2312{
 .v0{vertical-align:0.000000pt;}
 .ls0{letter-spacing:0.000000pt;}
 .ws0{word-spacing:0.000000pt;}
