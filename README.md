@@ -1,4 +1,5 @@
-Step-by-Step Guide to Running Your Flask-Selenium Project
+Step-by-Step Guide to Running Fit-card Generator Project
+
 1.Download and install Python from the official 
 During installation, check the box "Add Python to PATH"
 
