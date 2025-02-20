@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fit Card</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <button id="print">Print</button>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <img class="logo1" src="{{ url_for('static', filename='img/Untitled-1.png') }}" alt="">
+            </div>
+            <div class="col hos_info">
+                <p class="title"><strong>Detailed candidate report</strong></p>
+                <p class="tile_med">Medical center name</p>
+                <p class="hos_name"><strong>{{ extracted_data['medical_center'] }}</strong></p>
+            </div>
+            <div class="col d-flex justify-content-end">
+                <img class="logo2" src="{{ url_for('static', filename='img/2.png') }}" alt="">
+            </div>
+        </div>
+        <div class="code">
+            <p>GCC Slip No. <br> <strong>{{ customer_code }}</strong></p>
+            <p>Date examined <br> <strong>{{ extracted_data['medical_examination_date'] }}</strong></p>
+            <p>Report expiry date<br> <strong>{{ extracted_data['report_expiry_date'] }} </strong></p>
+        </div>
+        <div style="text-align: center;">
+            <p style="letter-spacing: 1.1px; font-weight: 600; font-size: 12px;">CANDIDATE INFORMATION</p>
+        </div>
+        <div class="row per-info">
+            <div class="col">
+                <img class="per-img" src="{{ extracted_data['profile_picture_url'] }}" alt="Profile Picture">
+                <p>Name <strong>{{ extracted_data['name'] }}</strong></p>
+                <p>Marital status <strong>{{ extracted_data['marital_status'] }}</strong></p>
+                <p>Height <strong>{{ extracted_data['height'] }}</strong></p>
+                <p>Weight <strong>{{ extracted_data['weight'] }} kg</strong></p>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('print').addEventListener('click', function(){
+            window.print();
+        });
+    </script>
+</body>
+</html>

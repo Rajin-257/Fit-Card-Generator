@@ -1,222 +1,86 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.options import Options
 import time
 from datetime import datetime
 import calendar
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        customer_code = request.form.get("customer_code")
+def extract_medical_data(customer_code):
+    """Extracts medical data using Selenium WebDriver."""
+    options = Options()
+    options.headless = True  # Run browser in headless mode
 
-        driver = webdriver.Firefox()  
-        
-        extracted_data = {}
-        
-        try:
-            driver.get("https://wafid.com/medical-status-search/")
-            time.sleep(2)
+    driver = webdriver.Firefox(options=options)
+    extracted_data = {}
 
-            radio_button = driver.find_element(By.ID, "id_search_variant_1")
-            radio_button.click()
+    try:
+        driver.get("https://wafid.com/medical-status-search/")
+        time.sleep(2)
 
-            input_field = driver.find_element(By.ID, "id_gcc_slip_no")
-            input_field.send_keys(customer_code)
-            input_field.send_keys(Keys.ENTER)
+        driver.find_element(By.ID, "id_search_variant_1").click()
+        input_field = driver.find_element(By.ID, "id_gcc_slip_no")
+        input_field.send_keys(customer_code, Keys.ENTER)
+        time.sleep(2)
 
-            time.sleep(2)  
-
-            modal_present = False
+        # Wait for modal
+        attempts = 0
+        modal_present = False
+        while not modal_present and attempts < 100:
             try:
                 driver.find_element(By.CLASS_NAME, "medical-status-modal-acceptance")
                 modal_present = True
             except:
-                modal_present = False
-
-            attempts = 0
-            while not modal_present and attempts < 100:  
                 attempts += 1
-                print(f"Modal not found, retrying... Attempt {attempts}")
-                input_field = driver.find_element(By.ID, "id_gcc_slip_no")
-                input_field.clear()  
-                input_field.send_keys(customer_code)
-                input_field.send_keys(Keys.ENTER)
                 time.sleep(2)
 
-                try:
-                    driver.find_element(By.CLASS_NAME, "medical-status-modal-acceptance")
-                    modal_present = True
-                except:
-                    modal_present = False
+        if not modal_present:
+            return {"error": "Error: Modal not found after multiple attempts."}
 
-            if not modal_present:
-                return "Error: Modal not found after multiple attempts."
+        # Extract data
+        fields = [
+            "name", "marital_status", "height", "phone", "gender", "passport",
+            "weight", "BMI", "age", "traveled_country__name", "applied_position__name",
+            "passport_expiry_on", "medical_examination_date", "medical_center"
+        ]
 
-            extracted_data['name'] = driver.find_element(By.ID, "name").get_attribute("value")  
-            extracted_data['marital_status'] = driver.find_element(By.ID, "marital_status").get_attribute("value")
-            extracted_data['height'] = driver.find_element(By.ID, "height").get_attribute("value") 
-            extracted_data['phone'] = driver.find_element(By.ID, "phone").get_attribute("value")  
-            extracted_data['gender'] = driver.find_element(By.ID, "gender").get_attribute("value")
-            extracted_data['passport'] = driver.find_element(By.ID, "passport").get_attribute("value")
-            extracted_data['weight'] = driver.find_element(By.ID, "weight").get_attribute("value") 
-            extracted_data['BMI'] = driver.find_element(By.ID, "BMI").get_attribute("value") 
-            extracted_data['age'] = driver.find_element(By.ID, "age").get_attribute("value")
-            extracted_data['traveled_country__name'] = driver.find_element(By.ID, "traveled_country__name").get_attribute("value")
-            extracted_data['applied_position__name'] = driver.find_element(By.ID, "applied_position__name").get_attribute("value")
-            extracted_data['passport_expiry_on'] = driver.find_element(By.ID, "passport_expiry_on").get_attribute("value")
-            extracted_data['medical_examination_date'] = driver.find_element(By.ID, "medical_examination_date").get_attribute("value")
-            extracted_data['medical_center'] = driver.find_element(By.ID, "medical_center").get_attribute("value")
+        for field in fields:
+            extracted_data[field] = driver.find_element(By.ID, field).get_attribute("value")
 
-            profile_picture_element = driver.find_element(By.CLASS_NAME, "profile-picture")
-            extracted_data['profile_picture_url'] = profile_picture_element.get_attribute("src")
+        extracted_data['profile_picture_url'] = driver.find_element(By.CLASS_NAME, "profile-picture").get_attribute("src")
 
-            print("Extracted Data:", extracted_data)
+        # Calculate report expiry date
+        medical_examination_date = datetime.strptime(extracted_data['medical_examination_date'], '%d/%m/%Y')
+        new_month = (medical_examination_date.month + 2) % 12 or 12
+        new_year = medical_examination_date.year + (1 if new_month < medical_examination_date.month else 0)
 
-            medical_examination_date_str = extracted_data['medical_examination_date']
-            medical_examination_date = datetime.strptime(medical_examination_date_str, '%d/%m/%Y')
-            
-            new_month = medical_examination_date.month + 2
-            new_year = medical_examination_date.year
+        last_day_of_new_month = calendar.monthrange(new_year, new_month)[1]
+        new_day = min(medical_examination_date.day, last_day_of_new_month)
+        extracted_data['report_expiry_date'] = datetime(new_year, new_month, new_day).strftime('%d/%m/%Y')
 
-            if new_month > 12:
-                new_month -= 12
-                new_year += 1
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        driver.quit()
 
-            last_day_of_new_month = calendar.monthrange(new_year, new_month)[1]
-            new_day = min(medical_examination_date.day, last_day_of_new_month)
+    return extracted_data
 
-            report_expiry_date = datetime(new_year, new_month, new_day)
-            extracted_data['report_expiry_date'] = report_expiry_date.strftime('%d/%m/%Y')
 
-        except Exception as e:
-            return f"Error: {str(e)}"
-        finally:
-            driver.quit()
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        customer_code = request.form.get("customer_code")
+        extracted_data = extract_medical_data(customer_code)
 
-        hospital_name = extracted_data['medical_center']
+        if "error" in extracted_data:
+            return extracted_data["error"]
 
-        return render_template_string("""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Fit Card</title>
-                <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-                <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-            </head>
-            <body>
-                <button id="print">Print</button>
-                <div class="container">
-                    <div class="row">
-                        <div class="col">
-                            <img class="logo1" src="{{ url_for('static', filename='img/Untitled-1.png') }}" alt="">
-                        </div>
-                        <div class="col hos_info">
-                            <p class="title"><strong>Detailed candidate report</strong></p>
-                            <p class="tile_med">Medical center name</p>
-                            <p class="hos_name"> <strong>{{ extracted_data['medical_center'] }}</strong></p>
-                        </div>
-                        <div class="col d-flex justify-content-end">
-                            <img class="logo2" src="{{ url_for('static', filename='img/2.png') }}" alt="">
-                        </div>
-                    </div>
-                    <div class="code">
-                        <p>G.H.C. Code No. <br> 
-                            <strong>
-                                {% if extracted_data['medical_center'] == 'AL MAN MEDICAL CENTER' %}
-                                    04/07/04
-                                {% elif extracted_data['medical_center'] == 'AL ALI DIAGNOSTIC CENTER' %}
-                                    05/06/05
-                                {% elif extracted_data['medical_center'] == 'SATATA MEDICAL CHECKUP CENTER' %}
-                                    05/06/02
-                                {% else %}
-                                    05/04/03
-                                {% endif %}
-                            </strong>
-                        </p>
+        return render_template("report.html", extracted_data=extracted_data, customer_code=customer_code)
 
-                        <p>GCC Slip No. <br> <Strong> {{ customer_code }}</Strong></p>
-                        <p>Date examined <br> <Strong> {{ extracted_data['medical_examination_date'] }}</Strong></p>
-                        <p>Report expiry date<br> <Strong> {{ extracted_data['report_expiry_date'] }} </Strong></p>
-                    </div>
-                    <div style="text-align: center;">
-                        <p style="letter-spacing: 1.1px; font-weight: 600; font-size: 12.6524px;">CANDIDATE INFORMATION</p>
-                    </div>
-                    <div class="row per-info" style="position: relative; top: 15px;">
-                        <div class="col">
-                            <img style="margin-right: 58px;" class="per-img" src="{{ extracted_data['profile_picture_url'] }}" alt="Profile Picture">
-                            <div class="row">
-                                <p style="line-height: 1.2; padding: 0; display: inline-block;">Name <br> <strong>{{ extracted_data['name'] }}</strong></p>
-                                <div class="col">
-                                    <p style="line-height: 1.2;">Marital status<br><strong>{{ extracted_data['marital_status'] }}</strong> <br> Height <br> <strong>{{ extracted_data['height'] }}</strong></p>
-                                </div>
-                                <div class="col">
-                                    <p style="line-height: 1.2; position: relative; left: 12px;">Passport No. <br> <strong>{{ extracted_data['passport'] }}</strong> <br> Weight <br> <strong>{{ extracted_data['weight'] }}kg</strong></p>
-                                </div>
-                                <div class="col">
-                                    <p style="line-height: 1.2; position: relative; left: 22px;">Age <br> <strong> {{ extracted_data['age'] }}</strong> <br> BMI <br> <strong>{{ extracted_data['BMI'] }}</strong></p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col">
-                            <div class="row">
-                                <div class="col">
-                                    <p style="line-height: 1.2; position: relative; left: 23px;">Gender<br> <strong>{{ extracted_data['gender'] }}</strong> <br> Passport expiry date <br> <strong>{{ extracted_data['passport_expiry_on'] }}</strong></p>
-                                </div>
-                                <div class="col">
-                                    <p style="line-height: 1.2; position: relative; left: 60px;">Nationality <br> <strong> Bangladeshi</strong> <br> phone <br> <strong>{{ extracted_data['phone'] }}</strong></p>
-                                </div>
-                                <div class="col">
-                                    <p style="line-height: 1.2; position: relative; left: 90px;">Travelling to <br> <strong>{{ extracted_data['traveled_country__name'] }}</strong> <br> Profession <br> <strong>{{ extracted_data['applied_position__name'] }}</strong></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="row">
-                        <div class="col"></div>
-                        <div class="col">
-                            <p style="font-size: 11px; line-height: 1.3; position: relative ;top: 520px; left: 40px; letter-spacing: -0.1px; width: 90%;" >Mentioned above is the medical report for Mr./Ms. <strong>{{ extracted_data['name'] }}</strong> who is Fit for the above mentioned job according to the GCC criteria</p>
-                        </div>
-                    </div>
-        
-        <img style="position: relative; top: -10px;" class="static_pic"
-                 src="{% if extracted_data['medical_center'] == 'Medi Health Medical Center' %}
-                     {{ url_for('static', filename='img/medihelth.png') }}
-                      {% elif extracted_data['medical_center'] == 'Tabuk Medical Center' %}
-                     {{ url_for('static', filename='img/tabuk.png') }}
-                      {% elif extracted_data['medical_center'] == 'AL MAN MEDICAL CENTER' %}
-                     {{ url_for('static', filename='img/alman.png') }}
-                      {% elif extracted_data['medical_center'] == 'AL ALI DIAGNOSTIC CENTER	' %}
-                     {{ url_for('static', filename='img/alali.png') }}
-                      {% else %}
-                     {{ url_for('static', filename='img/sotota.png') }}
-                     {% endif %}" alt="">
-
-                </div>
-            
-                <script>
-                    const printbtn = document.getElementById('print');
-                    printbtn.addEventListener('click', function(){
-                        window.print();
-                    });
-                </script>
-            </body>
-            </html>
-        """, extracted_data=extracted_data, customer_code=customer_code)
-
-    return '''
-        <form method="post">
-            <label for="customer_code">Enter Customer Code:</label>
-            <input type="text" name="customer_code" id="customer_code" required>
-            <input type="submit" value="Submit">
-        </form>
-    '''
+    return render_template("index.html")
 
 
 if __name__ == "__main__":
